@@ -200,3 +200,29 @@ class Query(graphene.ObjectType):
     all_orders = DjangoFilterConnectionField(
         OrderNode, filterset_class=OrderFilter
     )
+
+
+import graphene
+from crm.models import Product
+
+class ProductType(graphene.ObjectType):
+    name = graphene.String()
+    stock = graphene.Int()
+
+class UpdateLowStockProducts(graphene.Mutation):
+    updated = graphene.List(ProductType)
+    success = graphene.Boolean()
+
+    def mutate(self, info):
+        products = Product.objects.filter(stock__lt=10)
+        updated_list = []
+
+        for p in products:
+            p.stock += 10
+            p.save()
+            updated_list.append(ProductType(name=p.name, stock=p.stock))
+
+        return UpdateLowStockProducts(updated=updated_list, success=True)
+
+class Mutation(graphene.ObjectType):
+    update_low_stock = UpdateLowStockProducts.Field()
